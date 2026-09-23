@@ -7,7 +7,7 @@ a Python developer's point of view:
   what JetStream charges for not losing them (scripts `01`–`05`).
 - **Part 2 — consumer concurrency:** what happens when one worker stops keeping
   up — shared consumers vs fan-out, `max_ack_pending`, asyncio vs the GIL,
-  ordering vs concurrency (scripts `06`–`10`).
+  ordering vs concurrency (scripts `06`–`11`).
 
 Every console output quoted in the articles comes from running these scripts.
 
@@ -62,6 +62,7 @@ docker compose run --rm publisher python demo/<script>.py [arguments]
 | `05_dedup_pub.py` | 1 | Publisher-side deduplication with `Nats-Msg-Id`. |
 | `06_fanout_vs_shared.py shared\|fanout` | 2 | One consumer name shared by two workers splits the work; two names duplicate it. |
 | `07_throughput.py <max_ack_pending>` | 2 | Throughput against `max_ack_pending` (try 1, 10, 100, 1000). |
+| `11_shared_ceiling.py` | 2 | `max_ack_pending` is one pool shared by every worker on a consumer, not a limit per worker. |
 | `08_batch_mismatch.py` | 2 | `fetch(batch=100)` against `max_ack_pending=1`: every message costs a full timeout. |
 | `09_gil.py io\|cpu` | 2 | `asyncio.gather` helps with I/O-bound work and does nothing for CPU-bound work. |
 | `10_ordering.py concurrent\|partitioned` | 2 | Concurrency breaks per-key ordering; one consumer per key restores it. |
