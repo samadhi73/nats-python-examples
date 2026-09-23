@@ -1,0 +1,71 @@
+services:
+  nats:
+    image: nats:2.11.17-alpine
+    command:
+      - "--jetstream"
+      - "--store_dir=/data"
+      - "--http_port=8222"     # monitoring: http://localhost:8222/jsz, /connz, /varz
+      - "--name=lab"
+    ports:
+      - "4222:4222"   # clients
+      - "8222:8222"   # HTTP monitoring
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+
+  # The `nats` CLI - inspect streams and consumers without writing code:
+  #   docker compose exec nats-box nats stream ls
+  #   docker compose exec nats-box nats consumer info <stream> <consumer>
+  nats-box:
+    image: natsio/nats-box:latest
+    environment:
+      NATS_URL: nats://nats:4222
+    command: ["sleep", "infinity"]
+    depends_on:
+      nats:
+        condition: service_healthy
+
+  # Python with nats-py; the repository is mounted at /app. Run any script with:
+  #   docker compose run --rm publisher python demo/<script>.py
+  publisher:
+    build: .
+    environment:
+      NATS_URL: nats://nats:4222
+    volumes:
+      - .:/app
+    depends_on:
+      nats:
+        condition: service_healthy
+
+  # Part 1, chapter 3 - the Core NATS subscriber we kill and bring back:
+  #   docker compose stop core-sub / docker compose start core-sub
+  core-sub:
+    build: .
+    environment:
+      NATS_URL: nats://nats:4222
+    volumes:
+      - .:/app
+    depends_on:
+      nats:
+        condition: service_healthy
+    command: python demo/01_core_sub.py
+
+  # Part 1, chapter 4 - the JetStream worker; stopped and started just like core-sub:
+  #   docker compose stop js-worker / docker compose start js-worker
+  js-worker:
+    build: .
+    environment:
+      NATS_URL: nats://nats:4222
+    volumes:
+      - .:/app
+    depends_on:
+      nats:
+        condition: service_healthy
+    command: python demo/03_js_sub.py
+
+volumes:
+  nats-data:
